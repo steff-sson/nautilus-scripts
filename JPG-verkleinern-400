@@ -1,0 +1,17 @@
+#!/bin/bash
+
+mkdir hi-res
+readarray FILENAME <<< "$(echo -e "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" | sed -e 's/\r//g')"
+
+#echo -e "Logs: $(date)\n" > ~/Desktop/data.txt
+
+for file in "${FILENAME[@]}"; do
+
+    file=$(echo "$file" | tr -d $'\n')
+    #echo "Current file: $file" >> ~/Desktop/data.txt
+		convert "$file" -resize 400x -quality 85% "${file%.*}-web.jpg"
+    mv "$file" hi-res/
+    #ffmpeg -i "$file" -vn -acodec pcm_s16le -ac 2 -ar 48000 "${file%.*}.wav"
+done
+
+zenity --info --text="Bilder verkleinert (400x)"

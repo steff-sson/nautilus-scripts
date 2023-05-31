@@ -1,0 +1,9 @@
+#!/bin/bash
+filearr=()
+readarray FILENAME <<< "$(echo -e "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" | sed -e 's/\r//g')"
+for file in "${FILENAME[@]}"; do
+  filearr+=("$file")
+done
+zenity --info --text="$filearr"
+pdfunite "$filearr" merged.pdf
+zenity --info --text="PDFs zusammengeführt zu merged.pdf"

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# input file
+IN="$@"
+
+# output file
+OUTPUT="$@.gif"
+
+DELAY=$(zenity --entry --text="Verzoegerung in Milisekunden?")
+
+convert -delay $DELAY $IN/* $OUTPUT
+
+zenity --info --text="GIF erstellt!"

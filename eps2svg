@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# Old resize.sh Script
+#
+#for file in *.JPG; do mv -i "${file}" "${file%%.JPG}.jpg"; done
+#for f in *\ *; do mv "$f" "${f// /_}"; done
+#for file in *.jpg
+#do convert $file[1024X] ${file%.jpg}_web.jpg
+#done
+
+
+
+
+#!/bin/bash
+
+# input file
+IN="$@"
+
+# output folder
+# OUTPUT="SVG"
+
+# mkdir $OUTPUT
+for i in $(find $IN -type f); do
+	o=${i%.eps}.svg
+	inkscape --export-filename=$o $i
+done
+
+# zenity --info --text="EPS nach SVG umgewandelt"

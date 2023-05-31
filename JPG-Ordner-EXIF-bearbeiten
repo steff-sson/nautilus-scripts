@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# Das ist das alte exif.sh description
+#
+#read -p "Wie ist der Titel der Fotos?" title
+#read -p "Wie ist die Beschreibung (Bildunterschrift)?" description
+#exiftool -ObjectName="$title" -Caption-Abstract="$description" -ImageDescription="$description" *.jpg
+
+
+
+IN="$@"
+
+# output file
+title=$(zenity --entry --text="Wie ist der Titel/ALT-Text?")
+description=$(zenity --entry --text="Wie ist die Beschreibung?")
+cd $IN
+exiftool -charset exif=ut8 -ObjectName="$title" -Title="$title" -Headline="$title" -Label="$title" -Caption="$title" -Caption-Abstract="$description" -Description="$description" -ImageDescription="$description" -Notes="$description" -overwrite_original *.jpg
+exiftool -tagsfromfile @ -iptc:all -codedcharacterset=utf8 -overwrite_original *.jpg
+zenity --info --text="Tags geschrieben."

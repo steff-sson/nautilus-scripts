@@ -1,0 +1,5 @@
+#!/bin/bash
+
+IN="$@"
+
+wkhtmltopdf $IN $IN.pdf
