@@ -4,3 +4,5 @@ readarray FILENAME <<< "$(echo -e "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" | sed -
 # echo $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS > filename.txt
 
 pdfunite $NAUTILUS_SCRIPT_SELECTED_FILE_PATHS merged.pdf
+
+zenity --info --text="PDF(s) zusammengeführt zu "merged.pdf""
