@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# input file
+IN="$@"
+
+# output file
+
+msgconvert $@
+
+zenity --info --text="Nachricht(en) umgewandelt."

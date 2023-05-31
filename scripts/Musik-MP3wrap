@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# input file
+IN="$@"
+
+mp3wrap wrapped.mp3 $IN
+zenity --info --text="MP3 zusammengeschnitten."

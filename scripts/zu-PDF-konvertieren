@@ -1,0 +1,336 @@
+#!/bin/bash
+#
+################################################################################
+#  
+#  inPDFumwandeln V-1.0
+#  
+#  Dieses Programm nutzt ImageMagick um Bilder und PDF-Dateien in eine
+#  PDF-Datei umzuwandeln
+#
+################################################################################
+#  
+#  Copyright (C) 2011 by Johannes Storm <jo-master@gmx.de>
+#  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#  General Public License for more details.
+#  
+#  
+#  use:
+#  - kopiere dieses Skript in den Nautilus-Skript Ordner und mache es ausführbar
+#  - wähle die Dateien aus und starte dieses Skript aus dem Kontextmenü
+#  
+#  
+#  erforderliche Software:
+#  - ImageMagick
+#  - zenity
+#  - coreutils
+#  
+################################################################################
+
+# variables
+TMPDIRNAME="merged_output"
+FILENAME="umgewandeltesPDF.pdf"
+
+
+# check for zenity
+gui=$(which zenity)
+if [ ! -x "$gui" ];
+then
+    echo "Zenity wird benötigt: 'sudo apt-get install zenity"
+    exit 0
+fi
+
+
+# check for imagemagick
+convertcmd=$(which convert)
+if [ ! -x "$convertcmd" ];
+then
+    zenity --error --title="Fehlende Software" \
+           --text="Die benötigte Software 'ImageMagick' konnte nicht gefunden werden"
+    exit 0
+fi
+compositecmd=$(which composite)
+if [ ! -x "$compositecmd" ];
+then
+    zenity --error --title="Fehlende Software" \
+           --text="Die benötigte Software 'ImageMagick' konnte nicht gefunden werden"
+    exit 0
+fi
+
+
+# ask for filename
+FOUND=0
+while [ $FOUND -eq 0 ];
+do
+    FILENAME=$(zenity --entry \
+                      --title="Dateiname" \
+                      --text="Geben sie einen Dateinamen ein" \
+                      --entry-text="${FILENAME}" \
+                      --width="300")
+    if [ -z "${FILENAME}" ];
+    then
+        exit 0
+    elif [ -e "${FILENAME}" ];
+    then
+        zenity --question --text="Die Datei existiert bereits. Soll sie überschrieben werden?"
+        if [ $? = 0 ];
+        then
+            rm -f "${FILENAME}"
+            FOUND=1
+        fi
+    else
+        FOUND=1
+    fi
+done
+
+
+# ask for page type
+PAGETYPE=$(zenity --list \
+                  --title="Seitenformat" \
+                  --text="Wählen sie ein Seitenformat für die PDF-Datei" \
+                  --radiolist \
+                  --width="300" \
+                  --height="400" \
+                  --column="" --column="Seitenformat" --column="Seitengrößen" \
+                  'TRUE' "-" "unverändert" \
+                  'FALSE' "benutzerdefiniertes Format" "" \
+                  'FALSE' "11x17"  "792 x 1224" \
+                  'FALSE' "Ledger"  "1224 x 792" \
+                  'FALSE' "Legal"  "612 x 1008" \
+                  'FALSE' "Letter"  "612 x 792" \
+                  'FALSE' "LetterSmall"  "612 x 792" \
+                  'FALSE' "ArchE"  "2592 x 3456" \
+                  'FALSE' "ArchD"  "1728 x 2592" \
+                  'FALSE' "ArchC"  "1296 x 1728" \
+                  'FALSE' "ArchB"  "864 x 1296" \
+                  'FALSE' "ArchA"  "648 x 864" \
+                  'FALSE' "A0"  "2380 x 3368" \
+                  'FALSE' "A1"  "1684 x 2380" \
+                  'FALSE' "A2"  "1190 x 1684" \
+                  'FALSE' "A3"  "842 x 1190" \
+                  'FALSE' "A4"  "595 x 842" \
+                  'FALSE' "A4Small"  "595 x 842" \
+                  'FALSE' "A5"  "421 x 595" \
+                  'FALSE' "A6"  "297 x 421" \
+                  'FALSE' "A7"  "210 x 297" \
+                  'FALSE' "A8"  "148 x 210" \
+                  'FALSE' "A9"  "105 x 148" \
+                  'FALSE' "A10"  "74 x 105" \
+                  'FALSE' "B0"  "2836 x 4008" \
+                  'FALSE' "B1"  "2004 x 2836" \
+                  'FALSE' "B2"  "1418 x 2004" \
+                  'FALSE' "B3"  "1002 x 1418" \
+                  'FALSE' "B4"  "709 x 1002" \
+                  'FALSE' "B5"  "501 x 709" \
+                  'FALSE' "C0"  "2600 x 3677" \
+                  'FALSE' "C1"  "1837 x 2600" \
+                  'FALSE' "C2"  "1298 x 1837" \
+                  'FALSE' "C3"  "918 x 1298" \
+                  'FALSE' "C4"  "649 x 918" \
+                  'FALSE' "C5"  "459 x 649" \
+                  'FALSE' "C6"  "323 x 459" \
+                  'FALSE' "Flsa"  "612 x 936" \
+                  'FALSE' "Flse"  "612 x 936" \
+                  'FALSE' "HalfLetter"  "396 x 612")
+if [ -z "${PAGETYPE}" ];
+then
+    exit 0
+elif [ "${PAGETYPE}" = "-" ];
+then
+    convert "$@" "${FILENAME}"
+    exit 0
+elif [ "${PAGETYPE}" = "benutzerdefiniertes Format" ];
+then
+    PAGEFORMAT=$(zenity --entry \
+                        --title="Seitenformat" \
+                        --text="Geben sie ein Seitenformat für die PDF-Datei ein ('Breite'x'Höhe') [px]" \
+                        --entry-text="595x842" \
+                        --width="300")
+    if [ -z "${PAGEFORMAT}" ];
+    then
+        exit 0
+    else
+        PAGETYPECMD="-page ${PAGEFORMAT}"
+        PAGEROTATE=0
+    fi
+else
+    PAGETYPECMD="-page ${PAGETYPE}"
+    
+    PAGEFORMAT=$(zenity --list \
+                        --title="Seitenformat" \
+                        --text="Wählen sie ein Seitenformat für die PDF-Datei" \
+                        --radiolist \
+                        --width="300" \
+                        --column="" --column="Page Type" \
+                        'TRUE' "Hochformat" \
+                        'FALSE' "Querformat")
+    if [ -z "${PAGEFORMAT}" ];
+    then
+        exit 0
+    elif [ "${PAGEFORMAT}" = "Hochformat" ];
+    then
+        PAGEROTATE=0
+    else
+        PAGEROTATE=1
+    fi
+fi
+
+
+# get width and height of page type
+PAGESTYLES="11x17 - 792 x 1224
+Ledger - 1224 x 792
+Legal - 612 x 1008
+Letter - 612 x 792
+LetterSmall - 612 x 792
+ArchE - 2592 x 3456
+ArchD - 1728 x 2592
+ArchC - 1296 x 1728
+ArchB - 864 x 1296
+ArchA - 648 x 864
+A0 - 2380 x 3368
+A1 - 1684 x 2380
+A2 - 1190 x 1684
+A3 - 842 x 1190
+A4 - 595 x 842
+A4Small - 595 x 842
+A5 - 421 x 595
+A6 - 297 x 421
+A7 - 210 x 297
+A8 - 148 x 210
+A9 - 105 x 148
+A10 - 74 x 105
+B0 - 2836 x 4008
+B1 - 2004 x 2836
+B2 - 1418 x 2004
+B3 - 1002 x 1418
+B4 - 709 x 1002
+B5 - 501 x 709
+C0 - 2600 x 3677
+C1 - 1837 x 2600
+C2 - 1298 x 1837
+C3 - 918 x 1298
+C4 - 649 x 918
+C5 - 459 x 649
+C6 - 323 x 459
+Flsa - 612 x 936
+Flse - 612 x 936
+HalfLetter - 396 x 612"
+
+if [ "${PAGETYPE}" = "benutzerdefiniertes Format" ];
+then
+    PAGEWIDTH=$(echo "${PAGEFORMAT}" | sed -e "s/\(.*\)x\(.*\)/\1/")
+    PAGEHEIGHT=$(echo "${PAGEFORMAT}" | sed -e "s/\(.*\)x\(.*\)/\2/")
+else
+    PAGEWIDTH=$(echo "${PAGESTYLES}" | grep "${PAGETYPE} - " | \
+                sed -e "s/${PAGETYPE} - \(.*\) x \(.*\)/\1/")
+    PAGEHEIGHT=$(echo "${PAGESTYLES}" | grep "${PAGETYPE} - " | \
+                 sed -e "s/${PAGETYPE} - \(.*\) x \(.*\)/\2/")
+fi
+
+if [ $PAGEROTATE -eq 1 ];
+then
+    TMP=$PAGEWIDTH
+    PAGEWIDTH=$PAGEHEIGHT
+    PAGEHEIGHT=$TMP
+fi
+
+
+# ask for borders
+BORDERSTR=$(zenity --entry \
+                   --title="Ränder" \
+                   --text="Geben sie die Größe der Ränder ein ('Breite'x'Höhe') [px]" \
+                   --entry-text="50x50" \
+                   --width="300")
+if [ -z "${BORDERSTR}" ];
+then
+    BORDERWIDTH=0
+    BORDERHEIGHT=0
+else
+    BORDERWIDTH=$(echo "${BORDERSTR}" | sed -e "s/\(.*\)x\(.*\)/\1/")
+    BORDERHEIGHT=$(echo "${BORDERSTR}" | sed -e "s/\(.*\)x\(.*\)/\2/")
+fi
+IMGAWIDTH=$((PAGEWIDTH-2*BORDERWIDTH))
+IMGAHEIGHT=$((PAGEHEIGHT-2*BORDERHEIGHT))
+
+
+# ask for quality
+QUALITY=$(zenity --scale \
+                 --title="Bildqualität" \
+                 --text="Wählen sie die Bildqualität für die Komprimierung [%]" \
+                 --min-value=1 \
+                 --max-value=100 \
+                 --step=1 \
+                 --value=92)
+if [ -z "${QUALITY}" ];
+then
+    exit 0
+fi
+
+
+# convert files
+mkdir -p "${TMPDIRNAME}/images"
+mkdir -p "${TMPDIRNAME}/pdfs"
+
+exec 3> >(zenity --progress --title="Umwandeln ..." --pulsate --auto-close)
+
+ERRMSG=$(
+    convert xc:white ${PAGETYPECMD} "${TMPDIRNAME}/white.pdf" 2>&1
+    if [ $PAGEROTATE -eq 1 ];
+    then
+        convert "${TMPDIRNAME}/white.pdf" -rotate 90 \
+                "${TMPDIRNAME}/white.pdf" 2>&1
+    fi
+    for FILE in "$@"
+    do
+        HEIGHT=$(identify -format "%[fx:h]" "${FILE}")
+        WIDTH=$(identify -format "%[fx:w]" "${FILE}")
+        
+        if [ $(($IMGAWIDTH*100/$WIDTH)) -le $(($IMGAHEIGHT*100/$HEIGHT)) ];
+        then
+            NEWWIDTH=$IMGAWIDTH
+            NEWHEIGHT=$(($HEIGHT*$IMGAWIDTH/$WIDTH))
+        else
+            NEWWIDTH=$(($WIDTH*$IMGAHEIGHT/$HEIGHT))
+            NEWHEIGHT=$IMGAHEIGHT
+        fi
+        
+        if [ $NEWWIDTH -le $WIDTH -o $NEWHEIGHT -le $HEIGHT ];
+        then
+            convert "${FILE}" -scale "${NEWWIDTH}x${NEWHEIGHT}" \
+                    -quality "${QUALITY}" \
+                    "${TMPDIRNAME}/images/${FILE}" 2>&1
+        else
+            cp "${FILE}" "${TMPDIRNAME}/images/${FILE}"
+        fi
+        composite -gravity center "${TMPDIRNAME}/images/${FILE}" \
+                  "${TMPDIRNAME}/white.pdf" \
+                  "${TMPDIRNAME}/pdfs/${FILE}.pdf" 2>&1
+    done
+    convert ${TMPDIRNAME}/pdfs/* "${FILENAME}" 2>&1
+)
+rm -rf "${TMPDIRNAME}"
+exec 3>&-
+
+
+# error message
+if [ ! -z "${ERRMSG}" ];
+then
+    zenity --error \
+           --title="Ein Fehler ist aufgetreten" \
+           --text="Es ist ein Fehler während der Umwandlung aufgetreten"
+    echo "${ERRMSG}" | zenity --text-info \
+                              --title "Fehlernachricht" \
+                              --width="500" \
+                              --height="500"
+fi
+
+
+exit 0
+
